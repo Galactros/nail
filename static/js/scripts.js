@@ -414,3 +414,34 @@ function deleteMultiplePods() {
             $("#delete-status").text("Erro ao buscar pods.");
         });
 }
+
+function fetchDynatraceProblems() {
+    const tags = $("#dt-tags").val();
+    const timeAmount = $("#dt-time-amount").val();
+    const timeUnit = $("#dt-time-unit").val();
+
+    if (!tags || !timeAmount) {
+        alert("Por favor, preencha todos os campos.");
+        return;
+    }
+
+    showLoadingSpinner();
+
+    $.get(`/dynatrace-problems/?tags=${tags}&time_amount=${timeAmount}&time_unit=${timeUnit}`)
+        .done((data) => {
+            $("#dt-markdown-output").val(data.markdown);
+        })
+        .fail((err) => {
+            $("#dt-markdown-output").val("Erro ao buscar problemas do Dynatrace.");
+        })
+        .always(() => {
+            hideLoadingSpinner();
+        });
+}
+
+function copyToClipboardDynatrace() {
+    const outputField = document.getElementById("dt-markdown-output");
+    outputField.select();
+    document.execCommand("copy");
+    alert("Markdown copiado para área de transferência!");
+}

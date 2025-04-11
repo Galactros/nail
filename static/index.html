@@ -63,7 +63,10 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" onclick="showForm('delete-pods')">Deletar Pods</a>
-                    </li>                                    
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showForm('dynatrace-problems')">Dynatrace Problems</a>
+                    </li>                                                    
                 </ul>
                 <div class="dropdown">
                     <button class="btn btn-secondary dropdown-toggle" type="button" id="environmentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -250,6 +253,39 @@
                     <div id="delete-progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                 </div>
                 <p id="delete-status" class="mt-2"></p>
+            </div>
+        </div>
+
+        <div id="dynatrace-problems-form" class="form-section d-none">
+            <h3>Dynatrace - Problemas</h3>
+            <form class="mb-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="dt-tags" class="form-label">Tags (separadas por vírgula)</label>
+                        <input type="text" class="form-control" id="dt-tags" placeholder="tag1,tag2">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="dt-time-amount" class="form-label">Tempo</label>
+                        <input type="number" class="form-control" id="dt-time-amount" placeholder="Ex: 1">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="dt-time-unit" class="form-label">Unidade de Tempo</label>
+                        <select class="form-select" id="dt-time-unit">
+                            <option value="minutes">Minutos</option>
+                            <option value="hours">Horas</option>
+                        </select>
+                    </div>
+                </div>
+        
+                <div class="mt-3 text-end">
+                    <button type="button" class="btn btn-primary" onclick="fetchDynatraceProblems()">Buscar</button>
+                </div>
+            </form>
+        
+            <div class="mt-3">
+                <label for="dt-markdown-output" class="form-label">Resultado (Markdown)</label>
+                <textarea id="dt-markdown-output" class="form-control" rows="15" readonly></textarea>
+                <button class="btn btn-secondary mt-2" onclick="copyToClipboardDynatrace()">Copiar Markdown</button>
             </div>
         </div>
         

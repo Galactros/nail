@@ -10,11 +10,16 @@ from kubernetes.stream import stream
 from typing import List, Dict, Optional
 import os
 import time
+import requests
+from datetime import datetime, timedelta
 
 app = FastAPI()
 
 # Base folder for cluster kubeconfig directories
 base_kubeconfig_folder = "/arquvi/kube/clusters/"  # Substitua pelo caminho base
+
+DYNATRACE_API_URL = "https://{seu-endereco-dynatrace}/api/v2"
+DYNATRACE_API_TOKEN = "seu_token_aqui"
 
 # Mount static files for HTML, CSS, and JS
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -446,3 +451,58 @@ def list_namespace_pods(environment: str, cluster: str, namespace: str):
         raise HTTPException(status_code=e.status, detail=f"Erro ao listar pods no namespace '{namespace}': {e.reason}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+
+@app.get("/dynatrace-problems/")
+def dynatrace_problems(tags: str, time_amount: int, time_unit: str):
+    """Busca problemas do Dynatrace e retorna comentários em formato Markdown."""
+    headers = {
+        "Authorization": f"Api-Token {DYNATRACE_API_TOKEN}"
+    }
+
+    # Calcular o timestamp de corte
+    if time_unit == "minutes":
+        cutoff_time = datetime.utcnow() - timedelta(minutes=time_amount)
+    elif time_unit == "hours":
+        cutoff_time = datetime.utcnow() - timedelta(hours=time_amount)
+    else:
+        raise HTTPException(status_code=400, detail="Unidade de tempo inválida. Use 'minutes' ou 'hours'.")
+
+    cutoff_iso = cutoff_time.isoformat() + "Z"
+
+    # Buscar problemas
+    problems_url = f"{DYNATRACE_API_URL}/problems"
+    params = {
+        "pageSize": 100,
+        "problemSelector": f"status(open),tag({tags})"
+    }
+
+    response = requests.get(problems_url, headers=headers, params=params)
+    if response.status_code != 200:
+        raise HTTPException(status_code=response.status_code, detail="Erro ao buscar problemas do Dynatrace.")
+
+    problems = response.json().get("problems", [])
+    markdown_output = ""
+
+    for problem in problems:
+        problem_id = problem.get("problemId")
+        title = problem.get("displayName")
+        created_time = datetime.utcfromtimestamp(problem.get("startTime") / 1000)
+
+        if created_time > cutoff_time:
+            continue  # Ignora problemas criados depois do cutoff
+
+        # Buscar comentários do problema
+        comments_url = f"{DYNATRACE_API_URL}/problems/{problem_id}/comments"
+        comments_resp = requests.get(comments_url, headers=headers)
+
+        second_comment = "Sem comentário"
+        if comments_resp.status_code == 200:
+            comments = comments_resp.json().get("comments", [])
+            if len(comments) >= 2:
+                second_comment = comments[1].get("content", "Sem conteúdo")
+
+        markdown_output += f"## {title} (ID: {problem_id})\n\n"
+        markdown_output += f"{second_comment}\n\n---\n\n"
+
+    return {"markdown": markdown_output}
+
